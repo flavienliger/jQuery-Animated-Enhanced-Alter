@@ -34,7 +34,7 @@ THE SOFTWARE.
 	// ----------
 	// Plugin variables
 	// ----------
-	var	cssTransitionProperties = ['top', 'right', 'bottom', 'left', 'rotate', 'scale', 'opacity', 'height', 'width'],
+	var	cssTransitionProperties = ['marginLeft', 'marginTop', 'top', 'right', 'bottom', 'left', 'rotate', 'scale', 'opacity', 'height', 'width'],
 		directions = ['top', 'right', 'bottom', 'left'],
 		transform = ['rotate', 'scale', 'translate'],
 		cssPrefixes = ['-webkit-', '-moz-', '-o-', ''],
@@ -433,7 +433,7 @@ THE SOFTWARE.
 		if (!_isValidElement(element)) {
 			return false;
 		}
-
+		
 		var is = jQuery.inArray(prop, cssTransitionProperties) > -1;
 		if ((prop == 'width' || prop == 'height' || prop == 'opacity') && (parseFloat(value) === parseFloat(element.css(prop)))) is = false;
 		return is;
