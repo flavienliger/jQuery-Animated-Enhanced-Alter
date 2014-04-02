@@ -885,6 +885,11 @@ THE SOFTWARE.
 		var self = jQuery(this),
 			selfCSSData = self.data(DATA_KEY);
 
+		var pos = {
+			top: (parseInt(self.css('top'))||0),
+			left: (parseInt(self.css('left'))||0)
+		};
+		
 		if (selfCSSData && !_isEmptyObject(selfCSSData)) {
 			var	pauseData = selfCSSData.pause,
 				transform = pauseData.transform,
@@ -908,12 +913,12 @@ THE SOFTWARE.
 				trans = trans.get(true);
 				
 				return { 
-					top: (parseInt(self.css('top'))||0) + trans.translateY,
-					left: (parseInt(self.css('left'))||0) + trans.translateX
+					top: pos.top + trans.translateY,
+					left: pos.left + trans.translateX
 				};
 			}
 		}
-		return false;
+		return pos;
 	};
 	
 	/**
