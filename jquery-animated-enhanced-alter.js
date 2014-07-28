@@ -28,6 +28,7 @@ THE SOFTWARE.
 */
 
 // FIXME: '-=' fail why translate
+// RULE: not set transform in separate style
 
 (function(jQuery, originalAnimateMethod, originalStopMethod) {
 
@@ -337,6 +338,7 @@ THE SOFTWARE.
 			property = (transform ? cssPrefixes[i] + 'transform' : property);
 			secondary[property] = transform ? _getTranslate(e, meta, use3D) : value;
 		}
+		
 		pause['original'] = new Transform(e).get(true);
 		pause['duration'] = duration;
 		
@@ -786,14 +788,13 @@ THE SOFTWARE.
 				var secondary = selfCSSData.secondary;
 				
 				// has to be done in a timeout to ensure transition properties are set
-				setTimeout(function() {
-					selfCSSData.pause.timestamp = new Date().getTime();
-					
-					self.css(selfCSSData.properties)
-						.bind(transitionEndEvent, cssCallback)
-						.addClass('in-transition')
-						.css(secondary);
-				});
+				
+				selfCSSData.pause.timestamp = new Date().getTime();
+
+				self.css(selfCSSData.properties)
+					.bind(transitionEndEvent, cssCallback)
+					.addClass('in-transition')
+					.css(secondary);
 			}
 			else {
 				// it won't get fired otherwise
@@ -962,35 +963,39 @@ THE SOFTWARE.
 				
 				// transform set
 				if(!$.isEmptyObject(transform)){
-					var original = $.extend({}, pauseData.original);
-					var trans = new Transform(original);
+					var original = $.extend({}, pauseData.original); // protect original
+					var trans = new Transform(original);			// remake transform class
 					
 					// translate
 					if(transform.translateX || transform.translateY || transform.translateZ){
+						
 						trans.translate(transform.translateX/100*ratio, 
 										transform.translateY/100*ratio, 
 										transform.translateZ/100*ratio);
 					}
 
 					// rotate
-					if(transform.rotate){
-						trans.rotate(trans.get().rotateZ+transform.rotate/100*ratio);
+					if(transform.rotate !== undefined){
+						var p = transform.rotate<trans.get().rotateZ?-1:1;
+						var r = Math.abs((trans.get().rotateZ-transform.rotate)/100*ratio);
+						
+						trans.rotate(trans.get().rotateZ+r*p);
 					}
-
+					
 					// scale
-					if(transform.scale){
-						trans.scale(new Range(
-							{min: 0, max: time}, 
-							{min: 1, max: transform.scale})
-						.getOutput(posTime));
+					if(transform.scale !== undefined){
+						
+						var p = transform.scale<trans.get().scaleX?-1:1;
+						var r = Math.abs((trans.get().scaleX-transform.scale)/100*ratio);
+						
+						trans.scale(trans.get().scaleX+r*p);
 					}
 
 					trans = trans.getCssFormat();
 
 					for (var i = cssPrefixes.length - 1; i >= 0; i--) {
 						selfCSSData.properties[cssPrefixes[i]+'transition-duration'] = time-posTime+'ms';
-						//if(!stop)
-							selfCSSUpdate[cssPrefixes[i]+'transform'] = trans;
+						selfCSSUpdate[cssPrefixes[i]+'transform'] = trans;
 					}
 					
 					pauseData.update = trans;
@@ -1032,10 +1037,9 @@ THE SOFTWARE.
 				
 				self.css(reset)
 					.css(selfCSSData.properties);
-
-				setTimeout(function(){
-					self.css(selfCSSData.secondary);
-				});	
+				self.offset();
+				
+				self.css(selfCSSData.secondary);	
 			}
 		});
 		return this;
@@ -1082,9 +1086,8 @@ THE SOFTWARE.
 					transition[cssPrefixes[i]+'transition-duration'] = '0s';
 				}
 				
-				setTimeout(function(){
-					self.css(transition);
-				}, 30);
+				self.offset();
+				self.css(transition);
 				
 				if(gotoEnd){
 					// reset transformation
