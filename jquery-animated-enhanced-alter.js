@@ -670,19 +670,16 @@ THE SOFTWARE.
 						.removeClass('in-transition')
 						.css(selfCSSData.original)
 					
-					// fix android latency
-					setTimeout(function(){
-						self.css(restore)
-							.data(DATA_KEY, null);
-						
+					
+					self.offset();
+					self.css(restore)
+						.data(DATA_KEY, null);
+					self.offset();
+					
+					// run the main callback function
+					propertyCallback.apply(self, [e]);
 
-						setTimeout(function(){
-							// run the main callback function
-							propertyCallback.apply(self, [e]);
-							
-							nextQueue(self);
-						}, 50);
-					},50);
+					nextQueue(self);
 					
 					// if we used the fadeOut shortcut make sure elements are display:none
 					if (prop.opacity === 'hide') {
@@ -1004,8 +1001,8 @@ THE SOFTWARE.
 				pauseData.timePause = timePause;
 				pauseData.actif = true;
 				
-				self.css(selfCSSData.original);
-				self.css(selfCSSUpdate);
+				self.css($.extend(selfCSSUpdate, selfCSSData.original));
+				
 			}
 		});
 		
@@ -1097,10 +1094,8 @@ THE SOFTWARE.
 					}
 
 					self.css(reset)
-					
-					setTimeout(function(){
-						self.css(selfCSSData.secondary);
-					}, 70);	
+					self.offset();
+					self.css(selfCSSData.secondary);
 				}
 				else if(!leaveTransforms){
 					var original = selfCSSData.pause.original;
@@ -1128,11 +1123,12 @@ THE SOFTWARE.
 						
 						setTimeout(function(){
 							self.css(cssTransform);
-						}, 70);
+						}, 100)
 					}
 				}
 				
 				setTimeout(function(){
+					self.offset();
 					self.data('queue-stop', false);
 					self.data(DATA_KEY, '');
 					nextQueue(self);
