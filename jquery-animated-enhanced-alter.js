@@ -35,9 +35,9 @@ THE SOFTWARE.
 	// ----------
 	// Plugin variables
 	// ----------
-	var	cssTransitionProperties = ['marginLeft', 'marginTop', 'top', 'right', 'bottom', 'left', 'rotate', 'scale', 'opacity', 'height', 'width'],
+	var	cssTransitionProperties = ['marginLeft', 'marginTop', 'top', 'right', 'bottom', 'left', 'rotate', 'fastRotate', 'scale', 'opacity', 'height', 'width'],
 		directions = ['top', 'right', 'bottom', 'left'],
-		transform = ['rotate', 'scale', 'translate'],
+		transform = ['fastRotate', 'rotate', 'scale', 'translate'],
 		cssPrefixes = ['-webkit-', '-moz-', '-o-', ''],
 		pluginOptions = ['avoidTransforms', 'useTranslate3d', 'leaveTransforms'],
 		rfxnum = /^([+-]=)?([\d+-.]+)(.*)$/,
@@ -104,7 +104,7 @@ THE SOFTWARE.
 
 	function _getValueTransform(e, val) {
 		var trans = new Transform(e).get();	
-		if(val == 'rotate')
+		if(val == 'rotate' || val == 'fastRotate')
 			return trans.rotateZ;
 		if(val == 'scale')
 			return trans.scaleX;
@@ -201,8 +201,23 @@ THE SOFTWARE.
 			
 		var transform = new Transform(e);
 		transform.translate( meta.left, meta.top, z );
-		if(meta.rotate !== undefined)
+		if(meta.rotate !== undefined){
 			transform.rotate( meta.rotate );
+		}
+		else if(meta.fastRotate !== undefined){
+			var r = new Range({ min: 0, max: 360 }, { min: -360, max: 0 });
+			var a = meta.fastRotate;
+			var act = transform.get('rotateZ');
+			
+			if(act == 270 && meta.fastRotate == 0){
+				a = 360;	
+			}
+			if(meta.fastRotate < 0 ){
+				a = r.getInput(meta.fastRotate);
+			}
+			transform.rotate( a );
+		}
+		
 		if(meta.scale !== undefined)
 			transform.scale( meta.scale, meta.scale );
 		
@@ -579,7 +594,7 @@ THE SOFTWARE.
 		@param {function} [callback]
 	*/
 	jQuery.fn.animate = function(prop, speed, easing, callback) {
-
+		
 		var chain = false;
 		var arg = arguments;
 		
@@ -729,8 +744,7 @@ THE SOFTWARE.
 					easeInOutBack:  CUBIC_BEZIER_OPEN + '0.680, -0.550, 0.265, 1.550' + CUBIC_BEZIER_CLOSE
 				},
 				domProperties = {},
-				cssEasing = easings[opt.easing || 'easeInOut'] ? easings[opt.easing || 'easeInOut'] : opt.easing || 'easeInOut';
-				//cssEasing = 'linear';
+				cssEasing = easings[opt.easing] ? easings[opt.easing] : opt.easing || 'linear';
 				
 			// protect duplicate animation
 			var check = false;

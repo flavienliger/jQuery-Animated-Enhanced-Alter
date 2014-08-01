@@ -96,6 +96,7 @@
 
 		/**
 		 * Return transform object in format Css
+		 * @param {Object} aOrder - default object for order
 		 * @param {Boolean} [aRound=true] - 0.02 or 0.0197848645
 		 * @returns {String}
 		 */
@@ -138,40 +139,55 @@
 			return this;
 		},
 
+		hasTransform: function(){
+			
+			for(var key in this.transform){
+				if(this.transform[key]){
+					return true;	
+				}
+			}
+			return false;
+		},
+		
 		/**
 		 * Get object transform
-		 * @param {Boolean} full - return null parameter
+		 * @param {Boolean|String} opt - true: return all parameter; name: return name of parameter
 		 * @returns {Object}
 		 */
-		get: function(full){
-			if(full){
+		get: function(opt){
+			var order = [
+				'translateX', 'translateY',// 'translateZ',
+				'scaleX', 'scaleY',
+				'rotateX', 'rotateY', 'rotateZ'
+			];
+			
+			if(typeof opt==='boolean' && opt){
+				
 				var obj = {};
-				var order = [
-					'translateX', 'translateY',// 'translateZ',
-					'scaleX', 'scaleY',
-					'rotateX', 'rotateY', 'rotateZ'
-				];
-				var val = [
-					0,0,
-					1,1,
-					0,0,0
-				];
 				
 				for(var i=6; i>=0; i--){
-					obj[order[i]] = this.transform[order[i]]||val[i];
+					obj[order[i]] = this.transform[order[i]]||(order[i].indexOf('scale')!=-1? 1:0);
 				}
 				return obj;
+			}			
+			else if(typeof opt==='string'){
+				
+				return this.transform[opt]||(opt.indexOf('scale')!=-1? 1:0);
 			}
 			return this.transform;
 		},
 
 		/**
 		 * Add css string to our object
-		 * @param {String} str
+		 * @param {String|Object} obj
 		 */
-		add: function(str){
+		add: function(obj){
 
-			var obj = this.convert(str);
+			var obj;
+			
+			if(typeof obj === 'string')
+				obj = this.convert(obj);
+			
 			for(var key in obj){
 				if(this.transform[key]){
 					this.transform[key] += obj[key];	
