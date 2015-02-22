@@ -9,7 +9,7 @@ Features Adding
 =============
 
 - property supported :
-```
+```js
 $('.anim').animate({
 	left: 500, 
 	top: 100, 
@@ -21,28 +21,28 @@ $('.anim').animate({
 ```
 
 - time management :
-```
+```js
 $('.anim').pause();		// pause
 $('.anim').play();  		// play
 $('.anim').stop();		// stop and set top/left
 ```
 - rework chainage :
-```
+```js
 $('.anim').fadeIn().fadeOut();
 ```
 - extend function :
-```
+```js
 $('.anim').rotate(90); 		// rotate
 $('.anim').getAnimPos();	// return pos left/top	
 ```
 - fix callback in multi-object :
-```
+```js
 $('.anim').animate({ left: 100 }, function(){
 	$(this).fadeOut();
 });
 ```	
 - fix double same animate (in original version, transition failed) :
-```
+```js
 $('.anim').fadeOut();
 $('.anim').fadeOut(); // fix them - return false
 ```
