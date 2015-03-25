@@ -41,7 +41,6 @@ THE SOFTWARE.
 		cssPrefixes = ['-webkit-', '-moz-', '-o-', ''],
 		pluginOptions = ['avoidTransforms', 'useTranslate3d', 'leaveTransforms'],
 		rfxnum = /^([+-]=)?([\d+-.]+)(.*)$/,
-		rupper = /([A-Z])/g,
 		defaultEnhanceData = {
 			secondary: {},
 			meta: {
@@ -74,10 +73,8 @@ THE SOFTWARE.
 		thisStyle = thisBody.style,
 		transitionEndEvent = 'webkitTransitionEnd oTransitionEnd transitionend',
 		cssTransitionsSupported = thisStyle.WebkitTransition !== undefined || thisStyle.MozTransition !== undefined || thisStyle.OTransition !== undefined || thisStyle.transition !== undefined,
-		has3D = ('WebKitCSSMatrix' in window && 'm11' in new WebKitCSSMatrix()),
-		use3DByDefault = has3D;
-
-
+		use3DByDefault = true;
+    
 
 	// ----------
 	// Extended :animated filter
@@ -195,9 +192,10 @@ THE SOFTWARE.
 	*/
 	function _getTranslate(e, meta, use3D) {
 		var z = null;
+        
 		// 3d actif by default
-		//if((use3D === true || ((use3DByDefault === true && use3D !== false)) && has3D))
-		//	z = 1;
+		if(use3D === true || ((use3DByDefault === true && use3D !== false)))
+			z = 1;
 			
 		var transform = new Transform(e);
 		transform.translate( meta.left, meta.top, z );
@@ -256,13 +254,6 @@ THE SOFTWARE.
 			meta[stashedProperty] = e.css(property) == 'auto' ? 0 + offsetPosition : cleanPropertyValue + offsetPosition || 0;
 			enhanceData.meta = meta;
 			enhanceData.pause['transform']['translate'+(property=='left'? 'X':'Y')] = offsetPosition;
-			
-			// fix 0 issue (transition by 0 = nothing)
-			/*if (isTranslatable && offsetPosition === 0) {
-				offsetPosition = 0 - meta[stashedProperty];
-				meta[property] = offsetPosition;
-				meta[stashedProperty] = 0;
-			}*/
 		}
 		else if(isTransform) {
 			var meta = enhanceData.meta;
@@ -305,19 +296,19 @@ THE SOFTWARE.
 		for (var i = cssPrefixes.length - 1; i >= 0; i--) {
 			var tp = cssPrefixes[i] + 'transition-property',
 				td = cssPrefixes[i] + 'transition-duration',
-				tf = cssPrefixes[i] + 'transition-timing-function'//,
-				//bv = cssPrefixes[i] + 'backface-visibility';
+				tf = cssPrefixes[i] + 'transition-timing-function',
+				bv = cssPrefixes[i] + 'backface-visibility';
 
 			if (saveOriginal) {
 				original[tp] = e.css(tp) || '';
-				original[td] = '0.001s';//e.css(td) || '';
+				original[td] = '0.001s';
 				original[tf] = e.css(tf) || '';
 			}
 
 			properties[tp] = 'all';
 			properties[td] = duration + 'ms';
 			properties[tf] = easing;
-			//properties[bv] = 'hidden';
+			properties[bv] = 'hidden';
 		}
 		
 		return cssProperties;
@@ -505,6 +496,67 @@ THE SOFTWARE.
 			return true;
 		}
 	}
+
+	var nextQueue = function(e){
+		if(e.data('queue')){
+			var queue = e.data('queue');
+			var act = e.data('queue-state');
+			
+			if(act>=queue.length)
+				return false;
+			
+			e.animate.apply(e, queue[act]);
+			
+			act ++;
+			e.data('queue-state', act);
+		}
+		return false;
+	};
+    
+	var calculEase = function(curb, t){
+		var easings = {
+			// defaults
+			'linear'            : [0.250, 0.250, 0.750, 0.750],
+			'ease'              : [0.250, 0.100, 0.250, 1.000],
+			'easeIn'            : [0.420, 0.000, 1.000, 1.000],
+			'easeOut'           : [0.000, 0.000, 0.580, 1.000],
+			'easeInOut'         : [0.000, 0.000, 0.580, 1.000],
+			// Penner equations
+			'easeInCubic'       : [.55,.055,.675,.19],
+			'easeOutCubic'      : [.215,.61,.355,1],
+			'easeInOutCubic'    : [.645,.045,.355,1],
+			'easeInCirc'        : [.6,.04,.98,.335],
+			'easeOutCirc'       : [.075,.82,.165,1],
+			'easeInOutCirc'     : [.785,.135,.15,.86],
+			'easeInExpo'        : [.95,.05,.795,.035],
+			'easeOutExpo'       : [.19,1,.22,1],
+			'easeInOutExpo'     : [1,0,0,1],
+			'easeInQuad'        : [.55,.085,.68,.53],
+			'easeOutQuad'       : [.25,.46,.45,.94],
+			'easeInOutQuad'     : [.455,.03,.515,.955],
+			'easeInQuart'       : [.895,.03,.685,.22],
+			'easeOutQuart'      : [.165,.84,.44,1],
+			'easeInOutQuart'    : [.77,0,.175,1],
+			'easeInQuint'       : [.755,.05,.855,.06],
+			'easeOutQuint'      : [.23,1,.32,1],
+			'easeInOutQuint'    : [.86,0,.07,1],
+			'easeInSine'        : [.47,0,.745,.715],
+			'easeOutSine'       : [.39,.575,.565,1],
+			'easeInOutSine'     : [.445,.05,.55,.95],
+			'easeInBack'        : [.6,-.28,.735,.045],
+			'easeOutBack'       : [.175, .885,.32,1.275],
+			'easeInOutBack'     : [.68,-.55,.265,1.55]
+		};
+		
+		var curb = [].concat([0,0], easings[curb]||easings['ease'], [1,1]);
+		if(t<0) t=0;
+		if(t>1) t=1;
+		
+		var x = Math.pow(1-t, 3)*curb[0] + 3*t*Math.pow(1-t, 2)*curb[2] + 3*Math.pow(t,2)*(1-t)*curb[4] + Math.pow(t, 3)*curb[6];
+		var y = Math.pow(1-t, 3)*curb[1] + 3*t*Math.pow(1-t, 2)*curb[3] + 3*Math.pow(t,2)*(1-t)*curb[5] + Math.pow(t, 3)*curb[7];
+		
+		return {x:x, y:y};
+	};
 	
 
 	jQuery.extend({
@@ -565,23 +617,6 @@ THE SOFTWARE.
 		}
 		return translation;
 	};
-	
-	var nextQueue = function(e){
-		if(e.data('queue')){
-			var queue = e.data('queue');
-			var act = e.data('queue-state');
-			
-			if(act>=queue.length)
-				return false;
-			
-			e.animate.apply(e, queue[act]);
-			
-			act ++;
-			e.data('queue-state', act);
-		}
-		return false;
-	};
-	
 
 	/**
 		@public
@@ -623,15 +658,6 @@ THE SOFTWARE.
 			callbackQueue = 0,
 			propertyCallback = function() {
 				optall.complete.apply(this, arguments);
-				
-				// old chain system
-				/*callbackQueue--;
-				if (callbackQueue === 0) {
-					// we're done, trigger the user callback
-					if (typeof optall.complete === 'function') {
-						optall.complete.apply(this, arguments);
-					}
-				}*/
 			},
 			bypassPlugin = (typeof prop['avoidCSSTransitions'] !== 'undefined') ? prop['avoidCSSTransitions'] : pluginDisabledDefault;
 
@@ -801,7 +827,7 @@ THE SOFTWARE.
 				// has to be done in a timeout to ensure transition properties are set
 				
 				selfCSSData.pause.timestamp = new Date().getTime();
-
+                
 				self.css(selfCSSData.properties)
 					.bind(transitionEndEvent, cssCallback)
 					.addClass('in-transition')
@@ -847,52 +873,7 @@ THE SOFTWARE.
 		
 		return this;
 	};
-	
-	var calculEase = function(curb, t){
-		var easings = {
-			// defaults
-			'linear'            : [0.250, 0.250, 0.750, 0.750],
-			'ease'              : [0.250, 0.100, 0.250, 1.000],
-			'easeIn'            : [0.420, 0.000, 1.000, 1.000],
-			'easeOut'           : [0.000, 0.000, 0.580, 1.000],
-			'easeInOut'         : [0.000, 0.000, 0.580, 1.000],
-			// Penner equations
-			'easeInCubic'       : [.55,.055,.675,.19],
-			'easeOutCubic'      : [.215,.61,.355,1],
-			'easeInOutCubic'    : [.645,.045,.355,1],
-			'easeInCirc'        : [.6,.04,.98,.335],
-			'easeOutCirc'       : [.075,.82,.165,1],
-			'easeInOutCirc'     : [.785,.135,.15,.86],
-			'easeInExpo'        : [.95,.05,.795,.035],
-			'easeOutExpo'       : [.19,1,.22,1],
-			'easeInOutExpo'     : [1,0,0,1],
-			'easeInQuad'        : [.55,.085,.68,.53],
-			'easeOutQuad'       : [.25,.46,.45,.94],
-			'easeInOutQuad'     : [.455,.03,.515,.955],
-			'easeInQuart'       : [.895,.03,.685,.22],
-			'easeOutQuart'      : [.165,.84,.44,1],
-			'easeInOutQuart'    : [.77,0,.175,1],
-			'easeInQuint'       : [.755,.05,.855,.06],
-			'easeOutQuint'      : [.23,1,.32,1],
-			'easeInOutQuint'    : [.86,0,.07,1],
-			'easeInSine'        : [.47,0,.745,.715],
-			'easeOutSine'       : [.39,.575,.565,1],
-			'easeInOutSine'     : [.445,.05,.55,.95],
-			'easeInBack'        : [.6,-.28,.735,.045],
-			'easeOutBack'       : [.175, .885,.32,1.275],
-			'easeInOutBack'     : [.68,-.55,.265,1.55]
-		};
-		
-		var curb = [].concat([0,0], easings[curb]||easings['ease'], [1,1]);
-		if(t<0) t=0;
-		if(t>1) t=1;
-		
-		var x = Math.pow(1-t, 3)*curb[0] + 3*t*Math.pow(1-t, 2)*curb[2] + 3*Math.pow(t,2)*(1-t)*curb[4] + Math.pow(t, 3)*curb[6];
-		var y = Math.pow(1-t, 3)*curb[1] + 3*t*Math.pow(1-t, 2)*curb[3] + 3*Math.pow(t,2)*(1-t)*curb[5] + Math.pow(t, 3)*curb[7];
-		
-		return {x:x, y:y};
-	};
-	
+
 	jQuery.fn.getAnimPos = function(){
 		var self = jQuery(this),
 			selfCSSData = self.data(DATA_KEY);
@@ -908,7 +889,8 @@ THE SOFTWARE.
 				time = pauseData.duration,
 				timePause = new Date().getTime(),
 				posTime = timePause-pauseData.timestamp,
-				ratio = calculEase(pauseData.easing, posTime/time).y*100;
+				//ratio = calculEase(pauseData.easing, posTime/time).y*100;
+                ratio = posTime/time*100;
 
 			// transform set
 			if(!$.isEmptyObject(transform)){
@@ -932,7 +914,7 @@ THE SOFTWARE.
 		}
 		return pos;
 	};
-	
+    
 	/**
 		@public
 		@name jQuery.fn.pause
@@ -950,12 +932,13 @@ THE SOFTWARE.
 					transform = pauseData.transform,
 					property = pauseData.property,
 					time = pauseData.duration,
-					timePause = new Date().getTime(),
+                    selfCSSUpdate = {};
+                
+                var	timePause = new Date().getTime(),
 					posTime = timePause-pauseData.timestamp,
-					selfCSSUpdate = {},
-					ratio = calculEase(pauseData.easing, posTime/time).y*100;
-					//ratio = posTime/time*100;
-				
+					//ratio = calculEase(pauseData.easing, posTime/time).y*100;
+					ratio = posTime/time*100;
+                
 				if(!$.isEmptyObject(property)){
 					var val = null;
 
@@ -1061,20 +1044,24 @@ THE SOFTWARE.
 		@name jQuery.fn.stop
 		@function
 		@description The enhanced jQuery.stop function (resets transforms to left/top)
-		@param {boolean} [clearQueue]
+		@param {boolean} [clearQueue] - to test
 		@param {boolean} [gotoEnd]
 		@param {boolean} [leaveTransforms] Leave transforms/translations as they are? Default: false (reset translations to calculated explicit left/top props)
 	*/
 	jQuery.fn.stop = function(clearQueue, gotoEnd, leaveTransforms) {
-		//if (!cssTransitionsSupported) return originalStopMethod.apply(this, [clearQueue, gotoEnd]);
-
-		// clear the queue?
-		//if (clearQueue) this.queue([]);
+        
+        // original method
+		if (!cssTransitionsSupported) 
+            return originalStopMethod.apply(this, [clearQueue, gotoEnd]);
 		
 		this.each(function() {
 			var self = jQuery(this),
 				selfCSSData = self.data(DATA_KEY);
-		
+		  
+            // clear the queue?
+            if (clearQueue) 
+                this.queue([]);
+            
 			if(self.data('queue-stop'))
 				return;
 			
@@ -1135,18 +1122,18 @@ THE SOFTWARE.
 						
 						self.data('anim', {top: cssTransform['top'], left: cssTransform['left']});
 						
-						setTimeout(function(){
+						//setTimeout(function(){
 							self.css(cssTransform);
-						}, 100)
+						//}, 100)
 					}
 				}
 				
-				setTimeout(function(){
+				//setTimeout(function(){
 					self.offset();
 					self.data('queue-stop', false);
 					self.data(DATA_KEY, '');
 					nextQueue(self);
-				}, 100);
+				//}, 100);
 			}
 		});
 
